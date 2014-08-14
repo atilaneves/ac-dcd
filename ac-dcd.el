@@ -113,8 +113,8 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
                     0)
                 (apply 'call-process-region (point-min) (point-max)
                        ac-dcd-executable nil buf nil args)))
-      ;; (setq res (apply 'call-process-region (point-min) (point-max)
-      ;;                  ac-dcd-executable nil buf nil args))
+    ;; (setq res (apply 'call-process-region (point-min) (point-max)
+    ;;                  ac-dcd-executable nil buf nil args))
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
@@ -123,9 +123,9 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
 
 (defsubst ac-dcd-build-complete-args (pos)
   (append '()
-	  '("-c")
-	  (list (format "%s" pos))
-  	  ac-dcd-flags))
+          '("-c")
+          (list (format "%s" pos))
+          ac-dcd-flags))
 
 
 (defsubst ac-dcd-clean-document (s)
