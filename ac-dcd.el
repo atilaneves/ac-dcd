@@ -1,4 +1,12 @@
-;;; ac-dcd.el --- Auto Completion source for dcd for GNU Emacs
+;;; ac-dcd.el --- Auto Completion source for DCD for GNU Emacs
+
+;; Copyright (C) 2014 Atila Neves
+
+;; Author:  <atila.neves@gmail.com>
+;; Version: 0.1
+;; Package-Requires ()
+;; Keywords: languages
+;; URL: http://github.com/atilaneves/ac-dcd
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -13,12 +21,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 ;;; Commentary:
-;;
-;; Auto Completion source for dcd.  This code was modified from ac-dscanner.el
+
+;; Auto Completion source for DCD.  This code was modified from ac-dscanner.el
 ;; which originally came from auto-complete-clang-async.el.  Originally from
 ;; the DCD git repository (https://github.com/Hackerpilot/DCD).
+
+;; Usage:
+
+; (require 'ac-dcd)
+; (add-to-list 'ac-modes 'd-mode)
+; (add-hook 'd-mode-hook (lambda () (setq ac-sources (append '(ac-source-dcd) ac-sources))))
+
 
 ;;; Code:
 
