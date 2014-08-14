@@ -1,7 +1,7 @@
 ;;; ac-dcd.el --- Auto Completion source for dcd for GNU Emacs
 
 ;; Author:  <atila.neves@gmail.com>
-;; Version: 0.2
+;; Version: 0.3
 ;; Package-Requires ((auto-complete "1.3.1") (flycheck-dmd-dub "0.4"))
 ;; Keywords: languages
 ;; URL: http://github.com/atilaneves/ac-dcd
