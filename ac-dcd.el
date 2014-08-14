@@ -2,7 +2,7 @@
 
 ;; Author:  <atila.neves@gmail.com>
 ;; Version: 0.2
-;; Package-Requires ((auto-complete "1.3.1"))
+;; Package-Requires ((auto-complete "1.3.1") (flycheck-dmd-dub "0.4"))
 ;; Keywords: languages
 ;; URL: http://github.com/atilaneves/ac-dcd
 
@@ -45,6 +45,7 @@
 (require 'yasnippet nil t)
 (require 'eshell)
 (require 'json)
+(require 'flycheck-dmd-dub)
 
 (defcustom ac-dcd-executable
   "dcd-client"
@@ -567,30 +568,10 @@ output is just like following.\n
 
 (defun ac-dcd-find-imports-dub ()
   "Extract import flags from \"dub describe\" output."
-  (let ((dub-root-dir (ac-dcd-parent-directory
-                       (or (ac-dcd-search-file-up "dub.json" default-directory)
-                           (ac-dcd-search-file-up "package.json" default-directory))))
-        (dub-executable "dub"))
-
-    (when dub-root-dir
-      (with-temp-buffer
-        (let ((default-directory dub-root-dir))
-          (call-process dub-executable nil (current-buffer) nil "describe"))
-        (let* ((json-object-type 'hash-table)
-               (describe-hash (json-read-from-string (buffer-string)))
-               (packages-array (gethash "packages" describe-hash))
-               (imports-list '()))
-          (mapcar
-           (lambda (package)
-             (let ((package-path (gethash "path" package))
-                   (import-paths-array (gethash "importPaths" package)))
-               (mapcar
-                (lambda (import-path)
-                  (add-to-list 'imports-list
-                               (concat "-I" package-path import-path)))
-                import-paths-array)))
-           packages-array)
-          imports-list)))))
+    (let* ((basedir (fldd--get-project-dir)))
+      (if basedir
+          (mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
+        nil)))
 
 (defun ac-dcd-find-imports-std ()
   "Extract import flags from dmd.conf file."
