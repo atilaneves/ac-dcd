@@ -4,7 +4,7 @@
 
 ;; Author:  <atila.neves@gmail.com>
 ;; Version: 0.1
-;; Package-Requires ()
+;; Package-Requires ((auto-complete "1.3.1"))
 ;; Keywords: languages
 ;; URL: http://github.com/atilaneves/ac-dcd
 
@@ -35,8 +35,6 @@
 
 
 ;;; Code:
-
-(provide 'ac-dcd)
 (require 'auto-complete)
 
 (defcustom ac-dcd-executable
@@ -154,8 +152,8 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
              ac-prefix
              (ac-dcd-build-complete-args (point))))))
 
-(defvar ac-template-start-point nil)
-(defvar ac-template-candidates (list "ok" "no" "yes:)"))
+(defvar ac-dcd-template-start-point nil)
+(defvar ac-dcd-template-candidates (list "ok" "no" "yes:)"))
 
 (defun ac-dcd-action ()
   (interactive)
@@ -170,8 +168,8 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
     (cond (candidates
            (setq candidates (delete-dups candidates))
            (setq candidates (nreverse candidates))
-           (setq ac-template-candidates candidates)
-           (setq ac-template-start-point (point))
+           (setq ac-dcd-template-candidates candidates)
+           (setq ac-dcd-template-start-point (point))
            (ac-complete-template)
            (unless (cdr candidates) ;; unless length > 1
              (message (replace-regexp-in-string "\n" "   ;    " help))))
@@ -225,25 +223,25 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
           (t
            sl))))
 
-(defun ac-template-candidate ()
-  ac-template-candidates)
+(defun ac-dcd-template-candidate ()
+  ac-dcd-template-candidates)
 
-(defun ac-template-action ()
+(defun ac-dcd-template-action ()
   (interactive)
-  (unless (null ac-template-start-point)
+  (unless (null ac-dcd-template-start-point)
     (let ((pos (point)) sl (snp "")
           (s (get-text-property 0 'raw-args (cdr ac-last-completion)))))))
 
-(defun ac-template-prefix ()
-  ac-template-start-point)
+(defun ac-dcd-template-prefix ()
+  ac-dcd-template-start-point)
 
 
 ;; this source shall only be used internally.
 (ac-define-source template
-  '((candidates . ac-template-candidate)
-    (prefix . ac-template-prefix)
+  '((candidates . ac-dcd-template-candidate)
+    (prefix . ac-dcd-template-prefix)
     (requires . 0)
-    (action . ac-template-action)
+    (action . ac-dcd-template-action)
     (document . ac-dcd-document)
     (cache)
     (symbol . "t")))
