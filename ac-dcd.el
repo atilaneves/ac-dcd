@@ -119,7 +119,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 ;; output parser functions
 
 (defun ac-dcd-parse-output (prefix)
-  "Parse dcd output."
+  "Parse dcd output with prefix PREFIX."
   (goto-char (point-min))
   (let ((pattern (format ac-dcd-completion-pattern
                          (regexp-quote prefix)))
@@ -150,7 +150,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   "If it matches first line of dcd-output, it would be error message.")
 
 (defun ac-dcd-handle-error (res args)
-  "Notify error."
+  "Notify error with result RES and arguments ARGS."
   (let* ((errbuf (get-buffer-create ac-dcd-error-buffer-name))
          (outbuf (get-buffer ac-dcd-output-buffer-name))
          (cmd (concat ac-dcd-executable " " (mapconcat 'identity args " ")))
@@ -172,6 +172,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 
 ;; utility functions to call process
 (defun ac-dcd-call-process (prefix args)
+  "Call dcd-client with prefix PREFIX and args ARGS."
   (let ((buf (get-buffer-create ac-dcd-output-buffer-name))
         res)
     (with-current-buffer buf (erase-buffer))
@@ -193,6 +194,7 @@ TODO: multi byte character support"
   (position-bytes (point)))
 
 (defsubst ac-dcd-build-complete-args (pos)
+  "Build argument list to pass to dcd-client for position POS."
   (list
    "-c"
    (format "%s" pos)
@@ -205,10 +207,8 @@ TODO: multi byte character support"
   "Return non-nil if point is in a literal (a comment or string)."
   (nth 8 (syntax-ppss)))
 
-
-;; interface to communicate with auto-complete.el
-
 (defun ac-dcd-candidate ()
+  "Interface to communicate with auto-complete.el."
   (unless (ac-in-string/comment)
     (save-restriction
       (widen)
@@ -217,6 +217,7 @@ TODO: multi byte character support"
        (ac-dcd-build-complete-args (ac-dcd-cursor-position))))))
 
 (defun ac-dcd-prefix ()
+  "Return the autocomplete prefix."
   (or (ac-prefix-symbol)
       (let ((c (char-before)))
         (when (or (eq ?\. c)
@@ -279,7 +280,6 @@ TODO: multi byte character support"
     (symbol . "D")
     ))
 
-
 ;; function calltip expansion with yasnippet
 
 (defun ac-dcd-calltip-candidate ()
@@ -394,12 +394,11 @@ This function should be called at *dcd-output* buf."
 (defun ac-complete-dcd-calltips ()
   (auto-complete '(dcd-calltips)))
 
-
 ;; struct constructor calltip expansion
 
 (defsubst ac-dcd-replace-this-to-struct-name (struct-name)
-  "When to complete struct constructor calltips, dcd-client outputs candidates which begins with\"this\",
-so I have to replace it with struct name."
+  "Replace \"this\" with STRUCT-NAME.
+dcd-client outputs candidates that begin with \"this\" when completing struct constructor calltips."
   (while (search-forward "this" nil t))
   (replace-match struct-name))
 
@@ -550,12 +549,12 @@ output is just like following.\n
     ))
 
 (defun ac-dcd-parent-directory (dir)
-  "Returns parent directory of dir"
+  "Return parent directory of DIR."
   (when dir
     (file-name-directory (directory-file-name (expand-file-name dir)))))
 
 (defun ac-dcd-search-file-up (name &optional path)
-  "Searches for file `name' in parent directories recursively"
+  "Search for file NAME in parent directories recursively."
   (let* ((tags-file-name (concat path name))
          (parent (ac-dcd-parent-directory path))
          (path (or path default-directory))
