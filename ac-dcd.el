@@ -104,7 +104,6 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 
 (defun ac-dcd-maybe-start-server ()
   "Start dcd-server.  When the server process is already running, do nothing."
-  (message "Starting dcd server")
   (unless (get-process "dcd-server")
     (ac-dcd-start-server)))
 
