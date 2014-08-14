@@ -1,7 +1,7 @@
 ac-dcd
 ======
 
-Auto completion for Emacs using the [D Completion Daemon (DCD(](https://github.com/Hackerpilot/DCD).
+Auto completion for Emacs using the [D Completion Daemon (DCD)](https://github.com/Hackerpilot/DCD).
 Coding in a [dub](https://github.com/D-Programming-Language/dub) project?
 You should also probably use [ac-dcd-dub](https://github.com/atilaneves/ad-dcd-dub).
 
