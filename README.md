@@ -17,3 +17,11 @@ Add this to your `.emacs` / `init.el`:
 
 
 Make sure that the `dcd-client` binary is in your `PATH` and that the dcd-server is running.
+
+
+Installation
+------------
+
+Install from [MELPA](melpa.milkbox.net) or [MELPA Stable](http://melpa-stable.milkbox.net/) with:
+
+    M-x package-install RET ac-dcd.
