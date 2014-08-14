@@ -237,7 +237,7 @@ This variable will typically contain include paths, e.g., ( \"-I~/MyProject\", \
 
 
 ;; this source shall only be used internally.
-(ac-define-source template
+(ac-define-source dcd-template
   '((candidates . ac-dcd-template-candidate)
     (prefix . ac-dcd-template-prefix)
     (requires . 0)
