@@ -39,7 +39,13 @@ Add this to your `.emacs` / `init.el`:
                         (add-to-list 'popwin:special-display-config
                                       `(,ac-dcd-error-buffer-name :noselect t))
                          (add-to-list 'popwin:special-display-config
-                                      `(,ac-dcd-document-buffer-name :position right :width 80)))
+                         `(,ac-dcd-document-buffer-name :position right :width 80)))
+
+Alternatively,
+
+    (add-hook 'd-mode-hook 'ac-dcd-setup)
+
+Which does the same as the code above.
 
 * You can set import paths using `M-x customize-variable RET ac-dcd-flags`.
 * Alternatively, if you're using [DUB](http://code.dlang.org/) to manage your
@@ -70,7 +76,8 @@ Possible Issues
 ---------------
 
 `ac-dcd-maybe-start-server` only guaranteed to work with one Emacs instance. On systems
-with `pidof`, A 2nd Emacs will start its own dcd-server.
+with `pidof`, A 2nd Emacs will not attempt to start its own dcd-server and simply talk
+to the one already running.
 
 
 TODO

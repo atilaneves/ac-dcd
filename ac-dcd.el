@@ -608,5 +608,23 @@ or package.json file."
                         (ac-dcd-find-imports-std)
                         (ac-dcd-find-imports-dub))))
 
+;;;###autoload
+(defun ac-dcd-setup ()
+  (auto-complete-mode t)
+  (when (featurep 'yasnippet) (yas-minor-mode-on))
+  (ac-dcd-maybe-start-server)
+  (ac-dcd-add-imports)
+  (add-to-list 'ac-sources 'ac-source-dcd)
+  (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
+  (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
+  (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
+
+  (when (featurep 'popwin)
+    (add-to-list 'popwin:special-display-config
+                 `(,ac-dcd-error-buffer-name :noselect t))
+    (add-to-list 'popwin:special-display-config
+                 `(,ac-dcd-document-buffer-name :position right :width 80))))
+
+
 (provide 'ac-dcd)
 ;;; ac-dcd.el ends here
