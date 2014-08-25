@@ -66,6 +66,13 @@ Install from [MELPA](melpa.milkbox.net) or [MELPA Stable](http://melpa-stable.mi
     M-x package-install RET ac-dcd.
 
 
+Possible Issues
+---------------
+
+`ac-dcd-maybe-start-server` only guaranteed to work with one Emacs instance. On systems
+with `pidof`, A 2nd Emacs will start its own dcd-server.
+
+
 TODO
 ----
 
