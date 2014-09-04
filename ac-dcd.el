@@ -43,7 +43,6 @@
 (require 'auto-complete)
 (require 'rx)
 (require 'yasnippet nil t)
-(require 'eshell)
 (require 'json)
 (require 'flycheck-dmd-dub)
 
@@ -452,13 +451,11 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
           (list (buffer-file-name))))
         (buf (get-buffer-create ac-dcd-document-buffer-name)))
 
-    ;; If I use `call-process', dcd-client errors out when to get long doc(e.g. doc of writef).
-    ;; I have no idea why.
     (with-current-buffer buf
       (erase-buffer)
-      (eshell-command
-       (mapconcat 'identity `(,(executable-find ac-dcd-executable) ,@args) " ")
-       t)
+	  
+	  (apply 'call-process-region (point-min) (point-max)
+                     ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
