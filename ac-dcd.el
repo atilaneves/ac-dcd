@@ -43,7 +43,6 @@
 (require 'auto-complete)
 (require 'rx)
 (require 'yasnippet nil t)
-(require 'eshell)
 (require 'json)
 (require 'flycheck-dmd-dub)
 
@@ -118,32 +117,33 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 
 ;; output parser functions
 
-(defun ac-dcd-parse-output (prefix)
-  "Parse dcd output with prefix PREFIX."
-  (goto-char (point-min))
-  (let ((pattern (format ac-dcd-completion-pattern
-                         (regexp-quote prefix)))
-        lines match detailed-info
-        (prev-match ""))
-    (while (re-search-forward pattern nil t)
-      (setq match (match-string-no-properties 1))
-      (unless (string= "Pattern" match)
-        (setq detailed-info (match-string-no-properties 2))
-        (if (string= match prev-match)
-            (progn
-              (when detailed-info
-                (setq match (propertize match
-                                        'ac-dcd-help
-                                        (concat
-                                         (get-text-property 0 'ac-dcd-help (car lines))
-                                         "\n"
-                                         detailed-info)))
-                (setf (car lines) match)))
-          (setq prev-match match)
-          (when detailed-info
-            (setq match (propertize match 'ac-dcd-help detailed-info)))
-          (push match lines))))
-    lines))
+(defun ac-dcd-parse-output (prefix buf)
+  "Parse dcd output with prefix PREFIX on buffer BUF."
+  (with-current-buffer buf
+	(goto-char (point-min))
+	(let ((pattern (format ac-dcd-completion-pattern
+						   (regexp-quote prefix)))
+		  lines match detailed-info
+		  (prev-match ""))
+	  (while (re-search-forward pattern nil t)
+		(setq match (match-string-no-properties 1))
+		(unless (string= "Pattern" match)
+		  (setq detailed-info (match-string-no-properties 2))
+		  (if (string= match prev-match)
+			  (progn
+				(when detailed-info
+				  (setq match (propertize match
+					'ac-dcd-help
+					(concat
+					 (get-text-property 0 'ac-dcd-help (car lines))
+					 "\n"
+					 detailed-info)))
+				  (setf (car lines) match)))
+			(setq prev-match match)
+			(when detailed-info
+			  (setq match (propertize match 'ac-dcd-help detailed-info)))
+			(push match lines))))
+	  lines)))
 
 (defvar ac-dcd-error-message-regexp
   (rx (and (submatch (* nonl))  ": " (submatch (* nonl)) ": " (submatch (* nonl) eol)))
@@ -171,7 +171,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
     (display-buffer errbuf)))
 
 ;; utility functions to call process
-(defun ac-dcd-call-process (prefix args)
+(defun ac-dcd-call-process (args)
   "Call dcd-client with prefix PREFIX and args ARGS."
   (let ((buf (get-buffer-create ac-dcd-output-buffer-name))
         res)
@@ -185,8 +185,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
-      ;; Still try to get any useful input.
-      (ac-dcd-parse-output prefix))))
+	  )))
 
 (defsubst ac-dcd-cursor-position ()
   "Get cursor position to pass to dcd-client.
@@ -212,9 +211,11 @@ TODO: multi byte character support"
   (unless (ac-in-string/comment)
     (save-restriction
       (widen)
-      (ac-dcd-call-process
-       ac-prefix
-       (ac-dcd-build-complete-args (ac-dcd-cursor-position))))))
+	  (let ((prefix ac-prefix))
+		(ac-dcd-call-process
+		 (ac-dcd-build-complete-args (ac-dcd-cursor-position)))
+		(with-current-buffer (get-buffer-create ac-dcd-output-buffer-name)
+		  (ac-dcd-parse-output prefix (get-buffer ac-dcd-output-buffer-name)))))))
 
 (defun ac-dcd-prefix ()
   "Return the autocomplete prefix."
@@ -297,12 +298,10 @@ When the symbol is not a function, returns nothing"
   (backward-char 2)
 
   (ac-dcd-call-process
-   (concat (cdr ac-last-completion) "(")
    (ac-dcd-build-complete-args (ac-dcd-cursor-position)))
 
   (forward-char 2)
   (delete-char -3)
-
   )
 
 
@@ -399,11 +398,12 @@ This function should be called at *dcd-output* buf."
 (defsubst ac-dcd-replace-this-to-struct-name (struct-name)
   "Replace \"this\" with STRUCT-NAME.
 dcd-client outputs candidates that begin with \"this\" when completing struct constructor calltips."
-  (while (search-forward "this" nil t))
-  (replace-match struct-name))
+  (goto-char (point-min))
+  (while (search-forward "this" nil t)
+	(replace-match struct-name)))
 
 (defun ac-dcd-calltip-candidate-for-struct-constructor ()
-  "Almost the same as `ac-dcd-calltip-candidate', but calls `ac-dcd-replace-this-to-struct-name' before parsing."
+  "Almost the same as `ac-dcd-calltip-candidate', but call `ac-dcd-replace-this-to-struct-name' before parsing."
   (let ((buf (get-buffer-create ac-dcd-output-buffer-name)))
     (ac-dcd-call-process-for-calltips)
     (with-current-buffer buf
@@ -440,6 +440,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     ;; replace '\\n' in D src to '\n'
     (while (re-search-forward (rx "\\\\n") nil t)
       (replace-match "\\\\n"))
+	  (goto-char (point-min))
     ))
 
 (defun ac-dcd-get-ddoc ()
@@ -452,13 +453,11 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
           (list (buffer-file-name))))
         (buf (get-buffer-create ac-dcd-document-buffer-name)))
 
-    ;; If I use `call-process', dcd-client errors out when to get long doc(e.g. doc of writef).
-    ;; I have no idea why.
     (with-current-buffer buf
       (erase-buffer)
-      (eshell-command
-       (mapconcat 'identity `(,(executable-find ac-dcd-executable) ,@args) " ")
-       t)
+	  
+	  (apply 'call-process-region (point-min) (point-max)
+                     ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
@@ -531,7 +530,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
         (buf (get-buffer-create ac-dcd-output-buffer-name)))
     (with-current-buffer
         buf (erase-buffer)
-        (apply 'call-process ac-dcd-executable nil buf nil args))
+		(ac-dcd-call-process args)
+		)
     (let ((output (with-current-buffer buf (buffer-string))))
       output)))
 
@@ -603,7 +603,7 @@ output is just like following.\n
 The root of the project is determined by the \"closest\" dub.json
 or package.json file."
   (interactive)
-  (ac-dcd-call-process ""
+  (ac-dcd-call-process
                        (append
                         (ac-dcd-find-imports-std)
                         (ac-dcd-find-imports-dub))))
