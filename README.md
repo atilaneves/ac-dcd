@@ -39,7 +39,7 @@ Add this to your `.emacs` / `init.el`:
                         (add-to-list 'popwin:special-display-config
                                       `(,ac-dcd-error-buffer-name :noselect t))
                          (add-to-list 'popwin:special-display-config
-                         `(,ac-dcd-document-buffer-name :position right :width 80)))
+                         `(,ac-dcd-document-buffer-name :position right :width 80))))
 
 Alternatively,
 
