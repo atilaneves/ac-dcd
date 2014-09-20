@@ -443,9 +443,11 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 	  (goto-char (point-min))
     ))
 
-(defun ac-dcd-get-ddoc ()
+(defun ac-dcd-get-ddoc (&optional silent)
   "Get document with `dcd-client --doc'."
-  (save-buffer)
+  (interactive)
+  (when (buffer-modified-p)
+    (save-buffer))
   (let ((args
          (append
           (ac-dcd-build-complete-args (ac-dcd-cursor-position))
@@ -455,16 +457,17 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 
     (with-current-buffer buf
       (erase-buffer)
-	  
-	  (apply 'call-process-region (point-min) (point-max)
-                     ac-dcd-executable nil buf nil args)
+
+      (apply 'call-process-region (point-min) (point-max)
+             ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
-             (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
+             (string= (buffer-string) "\n\n\n") ;when symbol has no doc
              )
-        (error "No document for the symbol at point!"))
-      (buffer-string)
-      )))
+        (unless silent
+          (message "No document for the symbol at point!")
+          (ding)))
+      (buffer-string))))
 
 (defun ac-dcd-show-ddoc-with-buffer ()
   "Display Ddoc at point using `display-buffer'."
@@ -493,10 +496,14 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
   "Goto the point where `ac-dcd-goto-definition' was last called."
   (interactive)
   (if (ring-empty-p ac-dcd-goto-definition-marker-ring)
-      (error "Marker ring is empty. Can't pop.")
+      (progn
+        (message "Marker ring is empty. Can't pop.")
+        (ding))
     (let ((marker (ring-remove ac-dcd-goto-definition-marker-ring 0)))
       (switch-to-buffer (or (marker-buffer marker)
-                            (error "Buffer has been deleted")))
+                            (progn
+                              (message "Buffer has been deleted")
+                              (ding))))
       (goto-char (marker-position marker))
       ;; Cleanup the marker so as to avoid them piling up.
       (set-marker marker nil nil))))
@@ -504,7 +511,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 (defun ac-dcd-goto-definition ()
   "Goto declaration of symbol at point."
   (interactive)
-  (save-buffer)
+  (when (buffer-modified-p)
+    (save-buffer))
   (ac-dcd-call-process-for-symbol-declaration)
   (let* ((data (ac-dcd-parse-output-for-get-symbol-declaration))
          (file (car data))
@@ -625,6 +633,29 @@ or package.json file."
     (add-to-list 'popwin:special-display-config
                  `(,ac-dcd-document-buffer-name :position right :width 80))))
 
+
+;;;###autoload
+(defun d-turn-on-eldoc-mode ()
+  "Enable eldoc-mode in d-mode."
+  (interactive)
+  (set (make-local-variable 'eldoc-documentation-function)
+       'd-eldoc-print-current-symbol-info)
+  (turn-on-eldoc-mode))
+
+(add-hook 'd-mode-hook 'd-turn-on-eldoc-mode)
+
+(defun d-eldoc-print-current-symbol-info ()
+  "Return documentation string for the current D symbol."
+  (ignore-errors
+    (ac-dcd-get-ddoc t)
+    (ac-dcd-reformat-document)
+    (with-current-buffer (get-buffer-create ac-dcd-document-buffer-name)
+      (propertize
+       (replace-regexp-in-string
+        "[[:space:]]*\n[[:space:]]*"
+        " "
+        (trim-string (buffer-string)))
+       'face 'font-lock-comment-face))))
 
 (provide 'ac-dcd)
 ;;; ac-dcd.el ends here
