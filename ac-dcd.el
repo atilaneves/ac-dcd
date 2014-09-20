@@ -443,10 +443,11 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 	  (goto-char (point-min))
     ))
 
-(defun ac-dcd-get-ddoc ()
+(defun ac-dcd-get-ddoc (&optional silent)
   "Get document with `dcd-client --doc'."
   (interactive)
-  (save-buffer)
+  (when (buffer-modified-p)
+    (save-buffer))
   (let ((args
          (append
           (ac-dcd-build-complete-args (ac-dcd-cursor-position))
@@ -457,13 +458,13 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     (with-current-buffer buf
       (erase-buffer)
 
-	  (apply 'call-process-region (point-min) (point-max)
-                     ac-dcd-executable nil buf nil args)
+      (apply 'call-process-region (point-min) (point-max)
+             ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
-             (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
+             (string= (buffer-string) "\n\n\n") ;when symbol has no doc
              )
-        (progn
+        (unless silent
           (message "No document for the symbol at point!")
           (ding)))
       (buffer-string))))
@@ -510,7 +511,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 (defun ac-dcd-goto-definition ()
   "Goto declaration of symbol at point."
   (interactive)
-  (save-buffer)
+  (when (buffer-modified-p)
+    (save-buffer))
   (ac-dcd-call-process-for-symbol-declaration)
   (let* ((data (ac-dcd-parse-output-for-get-symbol-declaration))
          (file (car data))
@@ -645,7 +647,7 @@ or package.json file."
 (defun d-eldoc-print-current-symbol-info ()
   "Return documentation string for the current D symbol."
   (ignore-errors
-    (ac-dcd-get-ddoc)
+    (ac-dcd-get-ddoc t)
     (ac-dcd-reformat-document)
     (with-current-buffer (get-buffer-create ac-dcd-document-buffer-name)
       (propertize
