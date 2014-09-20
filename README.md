@@ -67,7 +67,7 @@ Features
 Installation
 ------------
 
-Install from [MELPA](melpa.milkbox.net) or [MELPA Stable](http://melpa-stable.milkbox.net/) with:
+Install from [MELPA](http://melpa.milkbox.net) or [MELPA Stable](http://melpa-stable.milkbox.net/) with:
 
     M-x package-install RET ac-dcd.
 
