@@ -464,11 +464,9 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
              )
         (progn
-          (error "No document for the symbol at point!")
-          ;; (ding)
-          ))
-      (buffer-string)
-      )))
+          (message "No document for the symbol at point!")
+          (ding)))
+      (buffer-string))))
 
 (defun ac-dcd-show-ddoc-with-buffer ()
   "Display Ddoc at point using `display-buffer'."
@@ -498,15 +496,13 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
   (interactive)
   (if (ring-empty-p ac-dcd-goto-definition-marker-ring)
       (progn
-        (error "Marker ring is empty. Can't pop.")
-        ;; (ding)
-        )
+        (message "Marker ring is empty. Can't pop.")
+        (ding))
     (let ((marker (ring-remove ac-dcd-goto-definition-marker-ring 0)))
       (switch-to-buffer (or (marker-buffer marker)
                             (progn
-                              (error "Buffer has been deleted")
-                              ;; (ding)
-                              )))
+                              (message "Buffer has been deleted")
+                              (ding))))
       (goto-char (marker-position marker))
       ;; Cleanup the marker so as to avoid them piling up.
       (set-marker marker nil nil))))
