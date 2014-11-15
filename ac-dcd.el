@@ -61,7 +61,7 @@ You can't put port number flag here.  Set `ac-dcd-server-port' instead."
   :type '(repeat (string :tag "Argument" "")))
 
 (defconst ac-dcd-completion-pattern
-  "^\\(%s[^\s\n]*\\)[ \t]+\\([cisuvmkfgepM]\\)"
+  (rx bol (submatch (1+ nonl)) "\t" (submatch (any "cisuvmkfgePMaAltT")) eol)
   "Regex to parse dcd output.
 \\1 is candidate itself, \\2 is kind of candidate.")
 
@@ -82,6 +82,10 @@ You can't put port number flag here.  Set `ac-dcd-server-port' instead."
   "Duration after killing server process in milli second.
 If `ac-dcd-init-server' doesn't work correctly, please set bigger number for this variable.")
 
+(defvar ac-dcd-version nil
+  "Version of dcd server.  This variable is automatically set when ac-dcd-get-version is called.")
+
+
 
 ;;server handle functions
 
@@ -94,12 +98,12 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 (defsubst ac-dcd-start-server ()
   "Start dcd-server."
   (let ((buf (get-buffer-create "*dcd-server*")))
-    (with-current-buffer buf (start-process "dcd-server" (current-buffer)
-                                            ac-dcd-server-executable
-                                            (mapconcat 'identity ac-dcd-flags " ")
-                                            "-p"
-                                            (format "%s" ac-dcd-server-port)
-                                            ))))
+    (with-current-buffer buf (apply 'start-process "dcd-server" (current-buffer)
+									ac-dcd-server-executable
+									"-p"
+									(format "%s" ac-dcd-server-port)
+									ac-dcd-flags
+									))))
 
 (defun ac-dcd-maybe-start-server ()
   "Start dcd-server.  When the server process is already running, do nothing."
@@ -112,8 +116,22 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   (when (get-process "dcd-server")
     (ac-dcd-stop-server)
     (sleep-for 0 ac-dcd-delay-after-kill-process))
-  (ac-dcd-start-server))
+  (ac-dcd-start-server)
+  (setq ac-dcd-version nil))
 
+(defun ac-dcd-get-version ()
+  "Get dcd version.  if ac-dcd-version is set, use it as a cache."
+  (if ac-dcd-version
+	  ac-dcd-version
+	(progn
+	  (ac-dcd-call-process '("--version"))
+	  (let* ((buf (get-buffer ac-dcd-output-buffer-name))
+			 (str (with-current-buffer buf (buffer-string)))
+			 verstr)
+		(string-match (rx "v" (submatch (* nonl)) "-" (submatch (* nonl))) str)
+		(setq verstr (match-string 1 str))
+		(setq ac-dcd-version (string-to-number verstr))
+		))))
 
 ;; output parser functions
 
@@ -127,17 +145,18 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 		  (prev-match ""))
 	  (while (re-search-forward pattern nil t)
 		(setq match (match-string-no-properties 1))
+		
 		(unless (string= "Pattern" match)
 		  (setq detailed-info (match-string-no-properties 2))
 		  (if (string= match prev-match)
 			  (progn
 				(when detailed-info
 				  (setq match (propertize match
-					'ac-dcd-help
-					(concat
-					 (get-text-property 0 'ac-dcd-help (car lines))
-					 "\n"
-					 detailed-info)))
+										  'ac-dcd-help
+										  (concat
+										   (get-text-property 0 'ac-dcd-help (car lines))
+										   "\n"
+										   detailed-info)))
 				  (setf (car lines) match)))
 			(setq prev-match match)
 			(when detailed-info
@@ -172,7 +191,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 
 ;; utility functions to call process
 (defun ac-dcd-call-process (args)
-  "Call dcd-client with prefix PREFIX and args ARGS."
+  "Call dcd-client with ARGS."
   (let ((buf (get-buffer-create ac-dcd-output-buffer-name))
         res)
     (with-current-buffer buf (erase-buffer))
@@ -180,8 +199,8 @@ If you want to restart server, use `ac-dcd-init-server' instead."
                   (progn
                     (message "ac-dcd error: could not find dcd-client executable")
                     0)
-          (apply 'call-process-region (point-min) (point-max)
-                     ac-dcd-executable nil buf nil args)))
+				(apply 'call-process-region (point-min) (point-max)
+					   ac-dcd-executable nil buf nil args)))
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
@@ -206,27 +225,49 @@ TODO: multi byte character support"
   "Return non-nil if point is in a literal (a comment or string)."
   (nth 8 (syntax-ppss)))
 
-(defun ac-dcd-candidate ()
-  "Interface to communicate with auto-complete.el."
+(defsubst ac-dcd-adjust-cursor-on-completion (point)
+  "If it was not member completion, goto the head of query before call process.
+`POINT' is the point to complete in D src."
+
+  ;; I'm not sure if it is exactly 0.4. If the completion doesn't work on older dcd, please report.
+  (when (> 0.4 (ac-dcd-get-version))
+	(return))
+  
+  (let* ((end point)
+  		 (begin (progn
+  				  (while (not (string-match	(rx (or blank "\n")) (char-to-string (char-before (point)))))
+  					(backward-char))
+  				  (point)))
+  		 (query (buffer-substring begin end)))
+
+	;; ;;debug
+	;; (message (format "query:%s" query))
+	
+	;;if query has "." in it, it should be member completion.
+	(if (string-match (rx (* nonl) "." (* nonl)) query)
+		(goto-char end)
+	  (goto-char begin))
+	))
+
+;; Interface functions to communicate with auto-complete.el.
+(defun ac-dcd-get-candidates ()
+  "Get ordinary auto-complete candidates."
   (unless (ac-in-string/comment)
     (save-restriction
       (widen)
 	  (let ((prefix ac-prefix))
-		(ac-dcd-call-process
-		 (ac-dcd-build-complete-args (ac-dcd-cursor-position)))
-		(with-current-buffer (get-buffer-create ac-dcd-output-buffer-name)
-		  (ac-dcd-parse-output prefix (get-buffer ac-dcd-output-buffer-name)))))))
+
+		(save-excursion
+		  (ac-dcd-adjust-cursor-on-completion (point))
+		  (ac-dcd-call-process
+		   (ac-dcd-build-complete-args (ac-dcd-cursor-position))))
+		(ac-dcd-parse-output prefix (get-buffer-create ac-dcd-output-buffer-name))))))
 
 (defun ac-dcd-prefix ()
   "Return the autocomplete prefix."
   (or (ac-prefix-symbol)
       (let ((c (char-before)))
-        (when (or (eq ?\. c)
-                  (and (eq ?> c)
-                       (eq ?- (char-before (1- (point)))))
-                  (and (eq ?: c)
-                       (eq ?: (char-before (1- (point))))))
-          (point)))))
+		(point))))
 
 (defun ac-dcd-document (item)
   "Return popup document of `ITEM'."
@@ -234,23 +275,23 @@ TODO: multi byte character support"
       (let (s)
         (setq s (get-text-property 0 'ac-dcd-help item))
         (cond
-         ((equal s "c") "class")
-         ((equal s "i") "interface")
-         ((equal s "s") "struct")
-         ((equal s "u") "union")
-         ((equal s "v") "variable")
-         ((equal s "m") "member variable")
-         ((equal s "k") "keyword")
-         ((equal s "f") "function")
-         ((equal s "g") "enum")
-         ((equal s "e") "enum member")
-         ((equal s "P") "package")
-         ((equal s "M") "module")
-         ((equal s "a") "array")
-         ((equal s "A") "associative array")
-         ((equal s "l") "alias")
-         ((equal s "t") "template")
-         ((equal s "T") "mixin template")
+		 ((equal s "c") "class name")
+		 ((equal s "i") "interface name")
+		 ((equal s "s") "struct name")
+		 ((equal s "u") "union name")
+		 ((equal s "v") "variable name")
+		 ((equal s "m") "member variable name")
+		 ((equal s "k") "keyword, built-in version, scope statement")
+		 ((equal s "f") "function or method")
+		 ((equal s "g") "enum name")
+		 ((equal s "e") "enum member")
+		 ((equal s "P") "package name")
+		 ((equal s "M") "module name")
+		 ((equal s "a") "array")
+		 ((equal s "A") "associative array")
+		 ((equal s "l") "alias name")
+		 ((equal s "t") "template name")
+		 ((equal s "T") "mixin template name")
          (t (format "candidate kind undetected: %s" s))
          ))))
 
@@ -272,7 +313,7 @@ TODO: multi byte character support"
        ))))
 
 (ac-define-source dcd
-  '((candidates . ac-dcd-candidate)
+  '((candidates . ac-dcd-get-candidates)
     (prefix . ac-dcd-prefix)
     (requires . 0)
     (document . ac-dcd-document)
@@ -283,7 +324,7 @@ TODO: multi byte character support"
 
 ;; function calltip expansion with yasnippet
 
-(defun ac-dcd-calltip-candidate ()
+(defun ac-dcd-get-calltip-candidates ()
   "Do calltip completion of the D symbol at point.
 The cursor must be at the end of a D symbol.
 When the symbol is not a function, returns nothing"
@@ -384,7 +425,7 @@ This function should be called at *dcd-output* buf."
   (car ac-last-completion))
 
 (defvar dcd-calltips
-  '((candidates . ac-dcd-calltip-candidate)
+  '((candidates . ac-dcd-get-calltip-candidates)
     (prefix . ac-dcd-calltip-prefix)
     (action . ac-dcd-calltip-action)
     (cache)
@@ -440,7 +481,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     ;; replace '\\n' in D src to '\n'
     (while (re-search-forward (rx "\\\\n") nil t)
       (replace-match "\\\\n"))
-	  (goto-char (point-min))
+	(goto-char (point-min))
     ))
 
 (defun ac-dcd-get-ddoc ()
@@ -457,7 +498,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
       (erase-buffer)
 	  
 	  (apply 'call-process-region (point-min) (point-max)
-                     ac-dcd-executable nil buf nil args)
+			 ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
@@ -566,10 +607,10 @@ output is just like following.\n
 
 (defun ac-dcd-find-imports-dub ()
   "Extract import flags from \"dub describe\" output."
-    (let* ((basedir (fldd--get-project-dir)))
-      (if basedir
-          (mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
-        nil)))
+  (let* ((basedir (fldd--get-project-dir)))
+	(if basedir
+		(mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
+	  nil)))
 
 (defun ac-dcd-find-imports-std ()
   "Extract import flags from dmd.conf file."
@@ -604,9 +645,9 @@ The root of the project is determined by the \"closest\" dub.json
 or package.json file."
   (interactive)
   (ac-dcd-call-process
-                       (append
-                        (ac-dcd-find-imports-std)
-                        (ac-dcd-find-imports-dub))))
+   (append
+	(ac-dcd-find-imports-std)
+	(ac-dcd-find-imports-dub))))
 
 ;;;###autoload
 (defun ac-dcd-setup ()
