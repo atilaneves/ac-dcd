@@ -120,7 +120,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   (setq ac-dcd-version nil))
 
 (defun ac-dcd-get-version ()
-  "Get dcd version.  if ac-dcd-version is set, use it as a cache."
+  "Get dcd version.  If ac-dcd-version is set, use it as a cache."
   (if ac-dcd-version
 	  ac-dcd-version
 	(progn
@@ -128,7 +128,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 	  (let* ((buf (get-buffer ac-dcd-output-buffer-name))
 			 (str (with-current-buffer buf (buffer-string)))
 			 verstr)
-		(string-match (rx "v" (submatch (* nonl)) "-" (submatch (* nonl))) str)
+		(string-match (rx "v" (submatch (* nonl)) (or "-" "\n")) str)
 		(setq verstr (match-string 1 str))
 		(setq ac-dcd-version (string-to-number verstr))
 		))))
