@@ -139,8 +139,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   "Parse dcd output with prefix PREFIX on buffer BUF."
   (with-current-buffer buf
 	(goto-char (point-min))
-	(let ((pattern (format ac-dcd-completion-pattern
-						   (regexp-quote prefix)))
+	(let ((pattern ac-dcd-completion-pattern)
 		  lines match detailed-info
 		  (prev-match ""))
 	  (while (re-search-forward pattern nil t)
