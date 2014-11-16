@@ -234,7 +234,7 @@ TODO: multi byte character support"
   
   (let* ((end point)
   		 (begin (progn
-  				  (while (not (string-match	(rx (or blank "\n")) (char-to-string (char-before (point)))))
+  				  (while (not (string-match	(rx (or blank "." "\n")) (char-to-string (char-before (point)))))
   					(backward-char))
   				  (point)))
   		 (query (buffer-substring begin end)))
@@ -242,10 +242,6 @@ TODO: multi byte character support"
 	;; ;;debug
 	;; (message (format "query:%s" query))
 	
-	;;if query has "." in it, it should be member completion.
-	(if (string-match (rx (* nonl) "." (* nonl)) query)
-		(goto-char end)
-	  (goto-char begin))
 	))
 
 ;; Interface functions to communicate with auto-complete.el.
@@ -302,10 +298,10 @@ TODO: multi byte character support"
 
     (let ((lastcompl (cdr ac-last-completion)))
       (cond
-       ((equal "f" (get-text-property 0 'ac-dcd-help lastcompl)) ; when it was a function
+       ((string-match "f" (get-text-property 0 'ac-dcd-help lastcompl)) ; when it was a function
         (progn
           (ac-complete-dcd-calltips)))
-       ((equal "s" (get-text-property 0 'ac-dcd-help lastcompl)) ; when it was a struct
+       ((string-match "s" (get-text-property 0 'ac-dcd-help lastcompl)) ; when it was a struct
         (progn
           (ac-complete-dcd-calltips-for-struct-constructor)))
        (t nil)
