@@ -99,11 +99,11 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   "Start dcd-server."
   (let ((buf (get-buffer-create "*dcd-server*")))
     (with-current-buffer buf (apply 'start-process "dcd-server" (current-buffer)
-									ac-dcd-server-executable
-									"-p"
-									(format "%s" ac-dcd-server-port)
-									ac-dcd-flags
-									))))
+                                            ac-dcd-server-executable
+                                            "-p"
+                                            (format "%s" ac-dcd-server-port)
+                                            ac-dcd-flags
+                                            ))))
 
 (defun ac-dcd-maybe-start-server ()
   "Start dcd-server.  When the server process is already running, do nothing."
@@ -151,11 +151,11 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 			  (progn
 				(when detailed-info
 				  (setq match (propertize match
-										  'ac-dcd-help
-										  (concat
-										   (get-text-property 0 'ac-dcd-help (car lines))
-										   "\n"
-										   detailed-info)))
+					'ac-dcd-help
+					(concat
+					 (get-text-property 0 'ac-dcd-help (car lines))
+					 "\n"
+					 detailed-info)))
 				  (setf (car lines) match)))
 			(setq prev-match match)
 			(when detailed-info
@@ -198,8 +198,8 @@ If you want to restart server, use `ac-dcd-init-server' instead."
                   (progn
                     (message "ac-dcd error: could not find dcd-client executable")
                     0)
-				(apply 'call-process-region (point-min) (point-max)
-					   ac-dcd-executable nil buf nil args)))
+          (apply 'call-process-region (point-min) (point-max)
+                     ac-dcd-executable nil buf nil args)))
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
@@ -238,10 +238,6 @@ TODO: multi byte character support"
   					(backward-char))
   				  (point)))
   		 (query (buffer-substring begin end)))
-
-	;; ;;debug
-	;; (message (format "query:%s" query))
-	
 	))
 
 ;; Interface functions to communicate with auto-complete.el.
@@ -410,9 +406,6 @@ This function should be called at *dcd-output* buf."
              (split-string str ", ")
              ", "))
       (setq yasstr (concat "(" yasstr ")"))
-      ;; ;;debug
-      ;; (message (format "str: %s" str))
-      ;; (message (format "yasstr: %s" yasstr))
       (yas-expand-snippet yasstr)
       )))
 
