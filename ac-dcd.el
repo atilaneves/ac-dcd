@@ -427,7 +427,6 @@ It returns a list of calltip candidates."
 	  (string-match ac-dcd-normal-calltip-pattern match)
 	  (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 2 match)))))
 	))
-    (message (format "%s" lines))
     lines
     ))
 
