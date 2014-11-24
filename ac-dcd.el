@@ -85,7 +85,9 @@ If `ac-dcd-init-server' doesn't work correctly, please set bigger number for thi
 (defvar ac-dcd-version nil
   "Version of dcd server.  This variable is automatically set when ac-dcd-get-version is called.")
 
-
+(defcustom ac-dcd-ignore-template-argument nil
+  "If non-nil, ignore template argument of calltip candidate."
+  :group 'auto-complete)
 
 ;;server handle functions
 
@@ -337,10 +339,19 @@ When the symbol is not a function, returns nothing"
   )
 
 
-(defconst ac-dcd-calltip-pattern
+(defconst ac-dcd-normal-calltip-pattern
   (rx bol (submatch (* nonl)) (submatch "(" (* nonl) ")") eol)
-  "Regexp to parse calltip completion output.
+  "Regexp to parse calltip completion.
 \\1 is function return type (if exists) and name, and \\2 is args.")
+(defconst ac-dcd-template-pattern (rx (submatch (* nonl)) (submatch "(" (*? nonl) ")") (submatch "(" (* nonl)")"))
+  "Regexp to parse template calltips.  
+\\1 is function return type (if exists) and name, \\2 is template args, and \\3 is args.")
+(defconst ac-dcd-calltip-pattern
+  (rx  (or (and bol (* nonl) "(" (* nonl) ")" eol)
+	   (and bol (* nonl) "(" (*? nonl) ")" "(" (* nonl)")" eol))))
+(defcustom ac-dcd-ignore-template-argument t
+  "If non-nil, ignore template argument on calltip expansion."
+  :group 'auto-complete)
 
 (defsubst ac-dcd-cleanup-function-candidate (s)
   "Remove return type of the head of the function.
@@ -364,6 +375,36 @@ When the symbol is not a function, returns nothing"
         (setq res (substring res 1)))
       res
       )))
+(defsubst ac-dcd-cleanup-template-candidate (s)
+  "Remove return type of the head of the function.
+`S' is candidate string."
+  (let (res)
+    (with-temp-buffer
+      (insert s)
+
+      ;;goto beggining of function name
+      (progn
+        (end-of-line)
+        (backward-sexp)
+	(backward-sexp)
+        (re-search-backward (rx (or bol " "))))
+
+      (setq res (buffer-substring
+                 (point)
+                 (progn
+                   (end-of-line)
+                   (point))))
+      (when (equal " " (substring res 0 1))
+        (setq res (substring res 1)))
+      res
+      )))
+
+(defsubst ac-dcd-candidate-is-tempalte-p (s)
+  "If candidate string `S' is template, return t."
+  (with-temp-buffer
+    (insert s)
+    (backward-sexp)
+    (equal ")" (char-to-string (char-before)))))
 
 (defun ac-dcd-parse-calltips ()
   "Parse dcd output for calltip completion.
@@ -372,42 +413,61 @@ It returns a list of calltip candidates."
   (let ((pattern ac-dcd-calltip-pattern)
         lines
         match
-        (prev-match ""))
+	)
     (while (re-search-forward pattern nil t)
-      (setq match
-            (ac-dcd-cleanup-function-candidate
-             (concat (match-string-no-properties 1) (match-string-no-properties 2))
-             ))
-      (push match lines))
+      (setq match (match-string 0))
+      (if (ac-dcd-candidate-is-tempalte-p match)
+	  (progn
+	    (string-match ac-dcd-template-pattern match)
+	    (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 3 match)))) ;candidate without template argument
+	    (unless ac-dcd-ignore-template-argument
+	      (string-match ac-dcd-template-pattern match)
+	      (add-to-list 'lines (ac-dcd-cleanup-template-candidate (format "%s!%s%s" (match-string 1 match) (match-string 2 match) (match-string 3 match))))))
+	(progn
+	  (string-match ac-dcd-normal-calltip-pattern match)
+	  (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 2 match)))))
+	))
     lines
+    ))
+
+(defsubst ac-dcd-format-calltips (str)
+  "Format calltips `STR' in parenthesis to yasnippet style."
+  (let (yasstr)
+    
+    ;;remove parenthesis
+    (setq str (substring str 1 (- (length str) 1)))
+
+    (setq yasstr
+	  (mapconcat
+	   (lambda (s) "format each args to yasnippet style" (concat "${" s "}"))
+	   (split-string str ", ")
+	   ", "))
+    (setq yasstr (concat "(" yasstr ")"))
     ))
 
 (defun ac-dcd-calltip-action ()
   "Format the calltip to yasnippet style.
 This function should be called at *dcd-output* buf."
-  (let (beg end)
-    (save-excursion
-      (setq end (point))
-      (setq beg (progn
-                  (backward-sexp)
-                  (point)
-                  ))
-      (kill-region beg end))
-    (let ((str (car kill-ring))
-          yasstr)
-      (setq kill-ring (cdr kill-ring)); clean up kill-ring
-
-      ;;remove parenthesis
-      (setq str (substring str 1 (- (length str) 1)))
-
-      (setq yasstr
-            (mapconcat
-             (lambda (s) "format each args to yasnippet style" (concat "${" s "}"))
-             (split-string str ", ")
-             ", "))
-      (setq yasstr (concat "(" yasstr ")"))
-      (yas-expand-snippet yasstr)
-      )))
+  (let* ((end (point))
+	 (arg-beg (save-excursion
+		(backward-sexp)
+		(point)))
+	 (template-beg
+	  (if (ac-dcd-candidate-is-tempalte-p (cdr ac-last-completion))
+	      (save-excursion
+		(backward-sexp 2)
+		(point))
+	    nil))
+	 (args (buffer-substring arg-beg end))
+	 res)
+    (delete-region arg-beg end)
+    (setq res (ac-dcd-format-calltips args))
+    
+    (when template-beg
+      (let ((template-args (buffer-substring template-beg arg-beg)))
+	(delete-region template-beg arg-beg)
+	(setq res (format "%s%s" (ac-dcd-format-calltips template-args) res))))
+    (yas-expand-snippet res)))
 
 (defun ac-dcd-calltip-prefix ()
   (car ac-last-completion))
