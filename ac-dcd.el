@@ -146,7 +146,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 		  (prev-match ""))
 	  (while (re-search-forward pattern nil t)
 		(setq match (match-string-no-properties 1))
-		
+
 		(unless (string= "Pattern" match)
 		  (setq detailed-info (match-string-no-properties 2))
 		  (if (string= match prev-match)
@@ -233,7 +233,7 @@ TODO: multi byte character support"
   ;; I'm not sure if it is exactly 0.4. If the completion doesn't work on older dcd, please report.
   (when (> 0.4 (ac-dcd-get-version))
 	(return))
-  
+
   (let* ((end point)
   		 (begin (progn
   				  (while (not (string-match	(rx (or blank "." "\n")) (char-to-string (char-before (point)))))
@@ -344,7 +344,7 @@ When the symbol is not a function, returns nothing"
   "Regexp to parse calltip completion.
 \\1 is function return type (if exists) and name, and \\2 is args.")
 (defconst ac-dcd-template-pattern (rx (submatch (* nonl)) (submatch "(" (*? nonl) ")") (submatch "(" (* nonl)")"))
-  "Regexp to parse template calltips.  
+  "Regexp to parse template calltips.
 \\1 is function return type (if exists) and name, \\2 is template args, and \\3 is args.")
 (defconst ac-dcd-calltip-pattern
   (rx  (or (and bol (* nonl) "(" (* nonl) ")" eol)
@@ -433,7 +433,7 @@ It returns a list of calltip candidates."
 (defsubst ac-dcd-format-calltips (str)
   "Format calltips `STR' in parenthesis to yasnippet style."
   (let (yasstr)
-    
+
     ;;remove parenthesis
     (setq str (substring str 1 (- (length str) 1)))
 
@@ -462,7 +462,7 @@ This function should be called at *dcd-output* buf."
 	 res)
     (delete-region arg-beg end)
     (setq res (ac-dcd-format-calltips args))
-    
+
     (when template-beg
       (let ((template-args (buffer-substring template-beg arg-beg)))
 	(delete-region template-beg arg-beg)
@@ -535,7 +535,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 (defun ac-dcd-get-ddoc ()
   "Get document with `dcd-client --doc'."
   (interactive)
-  (save-buffer)
+  ;; (save-buffer)
   (let ((args
          (append
           (ac-dcd-build-complete-args (ac-dcd-cursor-position))
@@ -603,7 +603,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 (defun ac-dcd-goto-definition ()
   "Goto declaration of symbol at point."
   (interactive)
-  (save-buffer)
+  ;; (save-buffer)
   (ac-dcd-call-process-for-symbol-declaration)
   (let* ((data (ac-dcd-parse-output-for-get-symbol-declaration))
          (file (car data))
