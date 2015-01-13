@@ -737,16 +737,17 @@ or package.json file."
 
 (defun d-eldoc-print-current-symbol-info ()
   "Return documentation string for the current D symbol."
-  (ignore-errors
-    (ac-dcd-get-ddoc)
-    (ac-dcd-reformat-document)
-    (with-current-buffer (get-buffer-create ac-dcd-document-buffer-name)
-      (propertize
-       (replace-regexp-in-string
-        "[[:space:]]*\n[[:space:]]*"
-        " "
-        (trim-string (buffer-string)))
-       'face 'font-lock-comment-face))))
+  (when nil
+    (ignore-errors
+      (ac-dcd-get-ddoc)
+      (ac-dcd-reformat-document)
+      (with-current-buffer (get-buffer-create ac-dcd-document-buffer-name)
+        (propertize
+         (replace-regexp-in-string
+          "[[:space:]]*\n[[:space:]]*"
+          " "
+          (trim-string (buffer-string)))
+         'face 'font-lock-comment-face)))))
 
 (provide 'ac-dcd)
 ;;; ac-dcd.el ends here
