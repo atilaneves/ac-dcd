@@ -586,16 +586,12 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
   "Goto the point where `ac-dcd-goto-definition' was last called."
   (interactive)
   (if (ring-empty-p ac-dcd-goto-definition-marker-ring)
-      (progn
-        (error "Marker ring is empty. Can't pop.")
-        ;; (ding)
-        )
+      (progn (message "Marker ring is empty. Can't pop.")
+             (ding))
     (let ((marker (ring-remove ac-dcd-goto-definition-marker-ring 0)))
       (switch-to-buffer (or (marker-buffer marker)
-                            (progn
-                              (error "Buffer has been deleted")
-                              ;; (ding)
-                              )))
+                            (progn (message "Buffer has been deleted")
+                                   (ding))))
       (goto-char (marker-position marker))
       ;; Cleanup the marker so as to avoid them piling up.
       (set-marker marker nil nil))))
