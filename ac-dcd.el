@@ -740,15 +740,15 @@ or package.json file."
 	(if thing
 	    (apply 'call-process-region (point-min) (point-max)
 		   ac-dcd-executable nil buf nil (list "--search" thing))
-	  (let ((ans (read-from-minibuffer "Enter symbol: ")))
+	  (let ((symbol (read-from-minibuffer "Enter symbol: ")))
 	    (apply 'call-process-region (point-min) (point-max)
-		   ac-dcd-executable nil buf nil (list "--search" answer))))
+		   ac-dcd-executable nil buf nil (list "--search" symbol))))
 	(display-buffer buf)
 	(end-of-buffer)
 	(delete-char -1)
 	(beginning-of-buffer)
 	(if (= (count-lines (point-min) (point-max)) 1)
-	    (call-interactively 'visit-file-in-line)
+	    (call-interactively 'ac-dcd-visit-file-in-line)
 	  (progn
 	    (local-set-key "q" 'delete-window)
 	    (local-set-key (kbd "RET") 'ac-dcd-visit-file-in-line)))))))
