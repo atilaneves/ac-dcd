@@ -68,6 +68,7 @@ You can't put port number flag here.  Set `ac-dcd-server-port' instead."
 (defconst ac-dcd-error-buffer-name "*dcd-error*")
 (defconst ac-dcd-output-buffer-name "*dcd-output*")
 (defconst ac-dcd-document-buffer-name "*dcd-document*")
+(defconst ac-dcd-search-symbol-buffer-name "*dcd-search-symbol*")
 (defcustom ac-dcd-server-executable
   "dcd-server"
   "Location of dcd-server executable."
@@ -712,8 +713,45 @@ or package.json file."
     (add-to-list 'popwin:special-display-config
                  `(,ac-dcd-error-buffer-name :noselect t))
     (add-to-list 'popwin:special-display-config
-                 `(,ac-dcd-document-buffer-name :position right :width 80))))
+                 `(,ac-dcd-document-buffer-name :position right :width 80))
+    (add-to-list 'popwin:special-display-config
+		 `(,ac-dcd-search-symbol-buffer-name :position bottom :width 5))))
 
+(defun ac-dcd-visit-file-in-line ()
+  (interactive)
+  (let* ((line (thing-at-point 'line))
+	 (parts (split-string line))
+	 (filename (car parts))
+	 (position (car (last parts))))
+    (find-file filename)
+    (goto-char (string-to-number position))
+    (local-set-key (kbd "C-c <left>")
+		   '(lambda ()
+		      (interactive)
+		      (switch-to-buffer (get-buffer-create
+					 ac-dcd-search-symbol-buffer-name))))))
+
+(defun ac-dcd-search-symbol ()
+  (interactive)
+  (let ((thing (thing-at-point 'word)))
+    (let ((buf (get-buffer-create ac-dcd-search-symbol-buffer-name)))
+      (with-current-buffer buf
+	(erase-buffer)
+	(if thing
+	    (apply 'call-process-region (point-min) (point-max)
+		   ac-dcd-executable nil buf nil (list "--search" thing))
+	  (let ((symbol (read-from-minibuffer "Enter symbol: ")))
+	    (apply 'call-process-region (point-min) (point-max)
+		   ac-dcd-executable nil buf nil (list "--search" symbol))))
+	(display-buffer buf)
+	(end-of-buffer)
+	(delete-char -1)
+	(beginning-of-buffer)
+	(if (= (count-lines (point-min) (point-max)) 1)
+	    (call-interactively 'ac-dcd-visit-file-in-line)
+	  (progn
+	    (local-set-key "q" 'delete-window)
+	    (local-set-key (kbd "RET") 'ac-dcd-visit-file-in-line)))))))
 
 (provide 'ac-dcd)
 ;;; ac-dcd.el ends here
