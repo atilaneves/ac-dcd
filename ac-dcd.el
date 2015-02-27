@@ -725,8 +725,11 @@ or package.json file."
 	 (position (car (last parts))))
     (find-file filename)
     (goto-char (string-to-number position))
-    (local-set-key (kbd "C-c <left>") '(lambda () (interactive) (switch-to-buffer (get-buffer-create ac-dcd-search-symbol-buffer-name))))))
-
+    (local-set-key (kbd "C-c <left>")
+		   '(lambda ()
+		      (interactive)
+		      (switch-to-buffer (get-buffer-create
+					 ac-dcd-search-symbol-buffer-name))))))
 
 (defun ac-dcd-search-symbol ()
   (interactive)
