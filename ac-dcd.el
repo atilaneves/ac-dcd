@@ -708,6 +708,7 @@ or package.json file."
   (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
   (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
   (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
+  (define-key d-mode-map (kbd "C-c s") 'ac-dcd-search-symbol)
 
   (when (featurep 'popwin)
     (add-to-list 'popwin:special-display-config
