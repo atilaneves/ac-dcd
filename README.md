@@ -34,6 +34,7 @@ Add this to your `.emacs` / `init.el`:
                      (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
                      (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
                      (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
+                     (define-key d-mode-map (kdb "C-c s") 'ac-dcd-search-symbol)
 
                      (when (featurep 'popwin)
                         (add-to-list 'popwin:special-display-config
@@ -62,6 +63,7 @@ Features
 * Show ddoc with `C-c ?`
 * Goto definition with `C-c .`
 * After goto definition, you can pop to previous position with `C-c ,`
+* Search for a symbol and show the results in a temporary buffer with `C-c s`
 
 
 Installation
