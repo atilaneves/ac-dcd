@@ -24,23 +24,25 @@ Add this to your `.emacs` / `init.el`:
 
         ;;; ac-dcd
         (require 'ac-dcd)
-
         (add-hook 'd-mode-hook
-                  '(lambda () "set up ac-dcd"
-                     (auto-complete-mode t)
-                     (yas-minor-mode-on)
-                     (ac-dcd-maybe-start-server)
-                     (add-to-list 'ac-sources 'ac-source-dcd))
-                     (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
-                     (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
-                     (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
-                     (define-key d-mode-map (kdb "C-c s") 'ac-dcd-search-symbol)
+          (lambda ()
+              (auto-complete-mode t)
+              (when (featurep 'yasnippet) (yas-minor-mode-on))
+              (ac-dcd-maybe-start-server)
+              (ac-dcd-add-imports)
+              (add-to-list 'ac-sources 'ac-source-dcd)
+              (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
+              (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
+              (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
+              (define-key d-mode-map (kbd "C-c s") 'ac-dcd-search-symbol)
 
-                     (when (featurep 'popwin)
-                        (add-to-list 'popwin:special-display-config
-                                      `(,ac-dcd-error-buffer-name :noselect t))
-                         (add-to-list 'popwin:special-display-config
-                         `(,ac-dcd-document-buffer-name :position right :width 80))))
+              (when (featurep 'popwin)
+                (add-to-list 'popwin:special-display-config
+                             `(,ac-dcd-error-buffer-name :noselect t))
+                (add-to-list 'popwin:special-display-config
+                             `(,ac-dcd-document-buffer-name :position right :width 80))
+                (add-to-list 'popwin:special-display-config
+                             `(,ac-dcd-search-symbol-buffer-name :position bottom :width 5)))))
 
 Alternatively,
 
