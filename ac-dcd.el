@@ -671,6 +671,7 @@ output is just like following.\n
                    ;; working dir
                    (concat (getenv "HOME") "/dmd.conf")
                    (concat (ac-dcd-parent-directory (executable-find "dmd")) "dmd.conf")
+                   "/usr/local/etc/dmd.conf"
                    "/etc/dmd.conf"))))
 
     ;; TODO: this extracting procedure is pretty rough, it just searches for
