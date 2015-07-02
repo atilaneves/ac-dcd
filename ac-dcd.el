@@ -688,16 +688,31 @@ output is just like following.\n
                             (string-prefix-p "-I" s))
                          flags-list))))))
 
+(defun ac-dcd--find-all-project-imports ()
+  "Find all project imports, including std packages and dub dependencies."
+  (append (ac-dcd-find-imports-std) (ac-dcd-find-imports-dub)))
+
+(defun ac-dcd--add-imports (&optional imports)
+  "Send import flags of the current DUB project to dcd-server.
+
+The root of the project is determined by the \"closest\" dub.json
+or package.json file. If IMPORTS is passed, it is used instead."
+  (let ((paths (if imports (mapcar (lambda (x) (concat "-I" x)) imports) (ac-dcd--find-all-project-imports))))
+    (ac-dcd-call-process paths)))
+
 (defun ac-dcd-add-imports ()
   "Send import flags of the current DUB project to dcd-server.
 
 The root of the project is determined by the \"closest\" dub.json
 or package.json file."
   (interactive)
-  (ac-dcd-call-process
-   (append
-        (ac-dcd-find-imports-std)
-        (ac-dcd-find-imports-dub))))
+  (ac-dcd--add-imports))
+
+(defun ac-dcd-add-import (path)
+  "Add PATH to the list of DCD imports."
+  (interactive "DPath to add to DCD imports: ")
+  (ac-dcd--add-imports (list path))
+  )
 
 ;;;###autoload
 (defun ac-dcd-setup ()
