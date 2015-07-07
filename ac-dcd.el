@@ -68,6 +68,7 @@ You can't put port number flag here.  Set `ac-dcd-server-port' instead."
 (defconst ac-dcd-error-buffer-name "*dcd-error*")
 (defconst ac-dcd-output-buffer-name "*dcd-output*")
 (defconst ac-dcd-document-buffer-name "*dcd-document*")
+(defconst ac-dcd-search-symbol-buffer-name "*dcd-search-symbol*")
 (defcustom ac-dcd-server-executable
   "dcd-server"
   "Location of dcd-server executable."
@@ -124,46 +125,46 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 (defun ac-dcd-get-version ()
   "Get dcd version.  If ac-dcd-version is set, use it as a cache."
   (if ac-dcd-version
-	  ac-dcd-version
-	(progn
-	  (ac-dcd-call-process '("--version"))
-	  (let* ((buf (get-buffer ac-dcd-output-buffer-name))
-			 (str (with-current-buffer buf (buffer-string)))
-			 verstr)
-		(string-match (rx "v" (submatch (* nonl)) (or "-" "\n")) str)
-		(setq verstr (match-string 1 str))
-		(setq ac-dcd-version (string-to-number verstr))
-		))))
+          ac-dcd-version
+        (progn
+          (ac-dcd-call-process '("--version"))
+          (let* ((buf (get-buffer ac-dcd-output-buffer-name))
+                         (str (with-current-buffer buf (buffer-string)))
+                         verstr)
+                (string-match (rx "v" (submatch (* nonl)) (or "-" "\n")) str)
+                (setq verstr (match-string 1 str))
+                (setq ac-dcd-version (string-to-number verstr))
+                ))))
 
 ;; output parser functions
 
 (defun ac-dcd-parse-output (prefix buf)
   "Parse dcd output with prefix PREFIX on buffer BUF."
   (with-current-buffer buf
-	(goto-char (point-min))
-	(let ((pattern ac-dcd-completion-pattern)
-		  lines match detailed-info
-		  (prev-match ""))
-	  (while (re-search-forward pattern nil t)
-		(setq match (match-string-no-properties 1))
+        (goto-char (point-min))
+        (let ((pattern ac-dcd-completion-pattern)
+                  lines match detailed-info
+                  (prev-match ""))
+          (while (re-search-forward pattern nil t)
+                (setq match (match-string-no-properties 1))
 
-		(unless (string= "Pattern" match)
-		  (setq detailed-info (match-string-no-properties 2))
-		  (if (string= match prev-match)
-			  (progn
-				(when detailed-info
-				  (setq match (propertize match
-					'ac-dcd-help
-					(concat
-					 (get-text-property 0 'ac-dcd-help (car lines))
-					 "\n"
-					 detailed-info)))
-				  (setf (car lines) match)))
-			(setq prev-match match)
-			(when detailed-info
-			  (setq match (propertize match 'ac-dcd-help detailed-info)))
-			(push match lines))))
-	  lines)))
+                (unless (string= "Pattern" match)
+                  (setq detailed-info (match-string-no-properties 2))
+                  (if (string= match prev-match)
+                          (progn
+                                (when detailed-info
+                                  (setq match (propertize match
+                                        'ac-dcd-help
+                                        (concat
+                                         (get-text-property 0 'ac-dcd-help (car lines))
+                                         "\n"
+                                         detailed-info)))
+                                  (setf (car lines) match)))
+                        (setq prev-match match)
+                        (when detailed-info
+                          (setq match (propertize match 'ac-dcd-help detailed-info)))
+                        (push match lines))))
+          lines)))
 
 (defvar ac-dcd-error-message-regexp
   (rx (and (submatch (* nonl))  ": " (submatch (* nonl)) ": " (submatch (* nonl) eol)))
@@ -205,7 +206,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
-	  )))
+          )))
 
 (defsubst ac-dcd-cursor-position ()
   "Get cursor position to pass to dcd-client.
@@ -235,12 +236,12 @@ TODO: multi byte character support"
 	(return))
 
   (let* ((end point)
-  		 (begin (progn
-  				  (while (not (string-match	(rx (or blank "." "\n")) (char-to-string (char-before (point)))))
-  					(backward-char))
-  				  (point)))
-  		 (query (buffer-substring begin end)))
-	))
+                 (begin (progn
+                                  (while (not (string-match     (rx (or blank "." "\n")) (char-to-string (char-before (point)))))
+                                        (backward-char))
+                                  (point)))
+                 (query (buffer-substring begin end)))
+        ))
 
 ;; Interface functions to communicate with auto-complete.el.
 (defun ac-dcd-get-candidates ()
@@ -248,19 +249,19 @@ TODO: multi byte character support"
   (unless (ac-in-string/comment)
     (save-restriction
       (widen)
-	  (let ((prefix ac-prefix))
+          (let ((prefix ac-prefix))
 
-		(save-excursion
-		  (ac-dcd-adjust-cursor-on-completion (point))
-		  (ac-dcd-call-process
-		   (ac-dcd-build-complete-args (ac-dcd-cursor-position))))
-		(ac-dcd-parse-output prefix (get-buffer-create ac-dcd-output-buffer-name))))))
+                (save-excursion
+                  (ac-dcd-adjust-cursor-on-completion (point))
+                  (ac-dcd-call-process
+                   (ac-dcd-build-complete-args (ac-dcd-cursor-position))))
+                (ac-dcd-parse-output prefix (get-buffer-create ac-dcd-output-buffer-name))))))
 
 (defun ac-dcd-prefix ()
   "Return the autocomplete prefix."
   (or (ac-prefix-symbol)
       (let ((c (char-before)))
-		(point))))
+                (point))))
 
 (defun ac-dcd-document (item)
   "Return popup document of `ITEM'."
@@ -268,23 +269,23 @@ TODO: multi byte character support"
       (let (s)
         (setq s (get-text-property 0 'ac-dcd-help item))
         (cond
-		 ((equal s "c") "class name")
-		 ((equal s "i") "interface name")
-		 ((equal s "s") "struct name")
-		 ((equal s "u") "union name")
-		 ((equal s "v") "variable name")
-		 ((equal s "m") "member variable name")
-		 ((equal s "k") "keyword, built-in version, scope statement")
-		 ((equal s "f") "function or method")
-		 ((equal s "g") "enum name")
-		 ((equal s "e") "enum member")
-		 ((equal s "P") "package name")
-		 ((equal s "M") "module name")
-		 ((equal s "a") "array")
-		 ((equal s "A") "associative array")
-		 ((equal s "l") "alias name")
-		 ((equal s "t") "template name")
-		 ((equal s "T") "mixin template name")
+                 ((equal s "c") "class name")
+                 ((equal s "i") "interface name")
+                 ((equal s "s") "struct name")
+                 ((equal s "u") "union name")
+                 ((equal s "v") "variable name")
+                 ((equal s "m") "member variable name")
+                 ((equal s "k") "keyword, built-in version, scope statement")
+                 ((equal s "f") "function or method")
+                 ((equal s "g") "enum name")
+                 ((equal s "e") "enum member")
+                 ((equal s "P") "package name")
+                 ((equal s "M") "module name")
+                 ((equal s "a") "array")
+                 ((equal s "A") "associative array")
+                 ((equal s "l") "alias name")
+                 ((equal s "t") "template name")
+                 ((equal s "T") "mixin template name")
          (t (format "candidate kind undetected: %s" s))
          ))))
 
@@ -348,7 +349,7 @@ When the symbol is not a function, returns nothing"
 \\1 is function return type (if exists) and name, \\2 is template args, and \\3 is args.")
 (defconst ac-dcd-calltip-pattern
   (rx  (or (and bol (* nonl) "(" (* nonl) ")" eol)
-	   (and bol (* nonl) "(" (*? nonl) ")" "(" (* nonl)")" eol))))
+           (and bol (* nonl) "(" (*? nonl) ")" "(" (* nonl)")" eol))))
 (defcustom ac-dcd-ignore-template-argument t
   "If non-nil, ignore template argument on calltip expansion."
   :group 'auto-complete)
@@ -386,7 +387,7 @@ When the symbol is not a function, returns nothing"
       (progn
         (end-of-line)
         (backward-sexp)
-	(backward-sexp)
+        (backward-sexp)
         (re-search-backward (rx (or bol " "))))
 
       (setq res (buffer-substring
@@ -413,20 +414,20 @@ It returns a list of calltip candidates."
   (let ((pattern ac-dcd-calltip-pattern)
         lines
         match
-	)
+        )
     (while (re-search-forward pattern nil t)
       (setq match (match-string 0))
       (if (ac-dcd-candidate-is-tempalte-p match)
-	  (progn
-	    (string-match ac-dcd-template-pattern match)
-	    (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 3 match)))) ;candidate without template argument
-	    (unless ac-dcd-ignore-template-argument
-	      (string-match ac-dcd-template-pattern match)
-	      (add-to-list 'lines (ac-dcd-cleanup-template-candidate (format "%s!%s%s" (match-string 1 match) (match-string 2 match) (match-string 3 match))))))
-	(progn
-	  (string-match ac-dcd-normal-calltip-pattern match)
-	  (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 2 match)))))
-	))
+          (progn
+            (string-match ac-dcd-template-pattern match)
+            (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 3 match)))) ;candidate without template argument
+            (unless ac-dcd-ignore-template-argument
+              (string-match ac-dcd-template-pattern match)
+              (add-to-list 'lines (ac-dcd-cleanup-template-candidate (format "%s!%s%s" (match-string 1 match) (match-string 2 match) (match-string 3 match))))))
+        (progn
+          (string-match ac-dcd-normal-calltip-pattern match)
+          (add-to-list 'lines (ac-dcd-cleanup-function-candidate (format "%s%s" (match-string 1 match) (match-string 2 match)))))
+        ))
     lines
     ))
 
@@ -438,10 +439,10 @@ It returns a list of calltip candidates."
     (setq str (substring str 1 (- (length str) 1)))
 
     (setq yasstr
-	  (mapconcat
-	   (lambda (s) "format each args to yasnippet style" (concat "${" s "}"))
-	   (split-string str ", ")
-	   ", "))
+          (mapconcat
+           (lambda (s) "format each args to yasnippet style" (concat "${" s "}"))
+           (split-string str ", ")
+           ", "))
     (setq yasstr (concat "(" yasstr ")"))
     ))
 
@@ -449,24 +450,24 @@ It returns a list of calltip candidates."
   "Format the calltip to yasnippet style.
 This function should be called at *dcd-output* buf."
   (let* ((end (point))
-	 (arg-beg (save-excursion
-		(backward-sexp)
-		(point)))
-	 (template-beg
-	  (if (ac-dcd-candidate-is-tempalte-p (cdr ac-last-completion))
-	      (save-excursion
-		(backward-sexp 2)
-		(point))
-	    nil))
-	 (args (buffer-substring arg-beg end))
-	 res)
+         (arg-beg (save-excursion
+                (backward-sexp)
+                (point)))
+         (template-beg
+          (if (ac-dcd-candidate-is-tempalte-p (cdr ac-last-completion))
+              (save-excursion
+                (backward-sexp 2)
+                (point))
+            nil))
+         (args (buffer-substring arg-beg end))
+         res)
     (delete-region arg-beg end)
     (setq res (ac-dcd-format-calltips args))
 
     (when template-beg
       (let ((template-args (buffer-substring template-beg arg-beg)))
-	(delete-region template-beg arg-beg)
-	(setq res (format "%s%s" (ac-dcd-format-calltips template-args) res))))
+        (delete-region template-beg arg-beg)
+        (setq res (format "%s%s" (ac-dcd-format-calltips template-args) res))))
     (yas-expand-snippet res)))
 
 (defun ac-dcd-calltip-prefix ()
@@ -489,7 +490,7 @@ This function should be called at *dcd-output* buf."
 dcd-client outputs candidates that begin with \"this\" when completing struct constructor calltips."
   (goto-char (point-min))
   (while (search-forward "this" nil t)
-	(replace-match struct-name)))
+        (replace-match struct-name)))
 
 (defun ac-dcd-calltip-candidate-for-struct-constructor ()
   "Almost the same as `ac-dcd-calltip-candidate', but call `ac-dcd-replace-this-to-struct-name' before parsing."
@@ -529,7 +530,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     ;; replace '\\n' in D src to '\n'
     (while (re-search-forward (rx "\\\\n") nil t)
       (replace-match "\\\\n"))
-	(goto-char (point-min))
+        (goto-char (point-min))
     ))
 
 (defun ac-dcd-get-ddoc ()
@@ -545,9 +546,10 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
 
     (with-current-buffer buf
       (erase-buffer)
-
 	  (apply 'call-process-region (point-min) (point-max)
 			 ac-dcd-executable nil buf nil args)
+          (apply 'call-process-region (point-min) (point-max)
+                         ac-dcd-executable nil buf nil args)
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
@@ -625,8 +627,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
         (buf (get-buffer-create ac-dcd-output-buffer-name)))
     (with-current-buffer
         buf (erase-buffer)
-		(ac-dcd-call-process args)
-		)
+                (ac-dcd-call-process args)
+                )
     (let ((output (with-current-buffer buf (buffer-string))))
       output)))
 
@@ -662,9 +664,9 @@ output is just like following.\n
 (defun ac-dcd-find-imports-dub ()
   "Extract import flags from \"dub describe\" output."
   (let* ((basedir (fldd--get-project-dir)))
-	(if basedir
-		(mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
-	  nil)))
+        (if basedir
+                (mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
+          nil)))
 
 (defun ac-dcd-find-imports-std ()
   "Extract import flags from dmd.conf file."
@@ -676,6 +678,7 @@ output is just like following.\n
                    ;; working dir
                    (concat (getenv "HOME") "/dmd.conf")
                    (concat (ac-dcd-parent-directory (executable-find "dmd")) "dmd.conf")
+                   "/usr/local/etc/dmd.conf"
                    "/etc/dmd.conf"))))
 
     ;; TODO: this extracting procedure is pretty rough, it just searches for
@@ -692,16 +695,31 @@ output is just like following.\n
                             (string-prefix-p "-I" s))
                          flags-list))))))
 
+(defun ac-dcd--find-all-project-imports ()
+  "Find all project imports, including std packages and dub dependencies."
+  (append (ac-dcd-find-imports-std) (ac-dcd-find-imports-dub)))
+
+(defun ac-dcd--add-imports (&optional imports)
+  "Send import flags of the current DUB project to dcd-server.
+
+The root of the project is determined by the \"closest\" dub.json
+or package.json file. If IMPORTS is passed, it is used instead."
+  (let ((paths (if imports (mapcar (lambda (x) (concat "-I" x)) imports) (ac-dcd--find-all-project-imports))))
+    (ac-dcd-call-process paths)))
+
 (defun ac-dcd-add-imports ()
   "Send import flags of the current DUB project to dcd-server.
 
 The root of the project is determined by the \"closest\" dub.json
 or package.json file."
   (interactive)
-  (ac-dcd-call-process
-   (append
-	(ac-dcd-find-imports-std)
-	(ac-dcd-find-imports-dub))))
+  (ac-dcd--add-imports))
+
+(defun ac-dcd-add-import (path)
+  "Add PATH to the list of DCD imports."
+  (interactive "DPath to add to DCD imports: ")
+  (ac-dcd--add-imports (list path))
+  )
 
 ;;;###autoload
 (defun ac-dcd-setup ()
@@ -713,13 +731,51 @@ or package.json file."
   (define-key d-mode-map (kbd "C-c ?") 'ac-dcd-show-ddoc-with-buffer)
   (define-key d-mode-map (kbd "C-c .") 'ac-dcd-goto-definition)
   (define-key d-mode-map (kbd "C-c ,") 'ac-dcd-goto-def-pop-marker)
+  (define-key d-mode-map (kbd "C-c s") 'ac-dcd-search-symbol)
 
   (when (featurep 'popwin)
     (add-to-list 'popwin:special-display-config
                  `(,ac-dcd-error-buffer-name :noselect t))
     (add-to-list 'popwin:special-display-config
-                 `(,ac-dcd-document-buffer-name :position right :width 80))))
+                 `(,ac-dcd-document-buffer-name :position right :width 80))
+    (add-to-list 'popwin:special-display-config
+                 `(,ac-dcd-search-symbol-buffer-name :position bottom :width 5))))
 
+(defun ac-dcd-visit-file-in-line ()
+  (interactive)
+  (let* ((line (thing-at-point 'line))
+         (parts (split-string line))
+         (filename (car parts))
+         (position (car (last parts))))
+    (find-file filename)
+    (goto-char (string-to-number position))
+    (local-set-key (kbd "C-c <left>")
+                   '(lambda ()
+                      (interactive)
+                      (switch-to-buffer (get-buffer-create
+                                         ac-dcd-search-symbol-buffer-name))))))
+
+(defun ac-dcd-search-symbol ()
+  (interactive)
+  (let ((thing (thing-at-point 'word)))
+    (let ((buf (get-buffer-create ac-dcd-search-symbol-buffer-name)))
+      (with-current-buffer buf
+        (erase-buffer)
+        (if thing
+            (apply 'call-process-region (point-min) (point-max)
+                   ac-dcd-executable nil buf nil (list "--search" thing))
+          (let ((symbol (read-from-minibuffer "Enter symbol: ")))
+            (apply 'call-process-region (point-min) (point-max)
+                   ac-dcd-executable nil buf nil (list "--search" symbol))))
+        (display-buffer buf)
+        (end-of-buffer)
+        (delete-char -1)
+        (beginning-of-buffer)
+        (if (= (count-lines (point-min) (point-max)) 1)
+            (call-interactively 'ac-dcd-visit-file-in-line)
+          (progn
+            (local-set-key "q" 'delete-window)
+            (local-set-key (kbd "RET") 'ac-dcd-visit-file-in-line)))))))
 
 ;;;###autoload
 (defun d-turn-on-eldoc-mode ()
