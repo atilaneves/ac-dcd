@@ -2,6 +2,7 @@
 
 ;; Author:  <atila.neves@gmail.com>
 ;; Version: 0.5
+;; Package-Version: 20170323.1301
 ;; Package-Requires: ((auto-complete "1.3.1") (flycheck-dmd-dub "0.7"))
 ;; Keywords: languages
 ;; URL: http://github.com/atilaneves/ac-dcd
@@ -30,13 +31,7 @@
 
 ;; (require 'ac-dcd)
 ;; (add-to-list 'ac-modes 'd-mode)
-;; (add-hook 'd-mode-hook
-;;           (lambda () "set up ac-dcd"
-;;             (auto-complete-mode t)
-;;             (yas-minor-mode-on)
-;;             (ac-dcd-maybe-start-server)
-;;             (ac-dcd-add-imports)
-;;             (add-to-list 'ac-sources 'ac-source-dcd)))
+;; (add-hook 'd-mode-hook #'ac-dcd-setup)
 
 ;;; Code:
 
@@ -45,6 +40,7 @@
 (require 'yasnippet nil t)
 (require 'json)
 (require 'flycheck-dmd-dub)
+
 
 (defcustom ac-dcd-executable
   "dcd-client"
@@ -201,12 +197,12 @@ If you want to restart server, use `ac-dcd-init-server' instead."
                   (progn
                     (message "ac-dcd error: could not find dcd-client executable")
                     0)
-          (apply 'call-process-region (point-min) (point-max)
-                     ac-dcd-executable nil buf nil (cons "--tcp" args))))
+                (apply 'call-process-region (point-min) (point-max)
+                       ac-dcd-executable nil buf nil (cons "--tcp" args))))
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
-          )))
+      )))
 
 (defsubst ac-dcd-cursor-position ()
   "Get cursor position to pass to dcd-client.
@@ -231,17 +227,13 @@ TODO: multi byte character support"
   "If it was not member completion, goto the head of query before call process.
 `POINT' is the point to complete in D src."
 
-  ;; I'm not sure if it is exactly 0.4. If the completion doesn't work on older dcd, please report.
-  (when (> 0.4 (ac-dcd-get-version))
-        (return))
-
   (let* ((end point)
-                 (begin (progn
-                                  (while (not (string-match     (rx (or blank "." "\n")) (char-to-string (char-before (point)))))
-                                        (backward-char))
-                                  (point)))
-                 (query (buffer-substring begin end)))
-        ))
+         (begin (progn
+                  (while (not (string-match (rx (or blank "." "\n")) (char-to-string (char-before (point)))))
+                    (backward-char))
+                  (point)))
+         (query (buffer-substring begin end)))
+    ))
 
 ;; Interface functions to communicate with auto-complete.el.
 (defun ac-dcd-get-candidates ()
@@ -249,13 +241,12 @@ TODO: multi byte character support"
   (unless (ac-in-string/comment)
     (save-restriction
       (widen)
-          (let ((prefix ac-prefix))
-
-                (save-excursion
-                  (ac-dcd-adjust-cursor-on-completion (point))
-                  (ac-dcd-call-process
-                   (ac-dcd-build-complete-args (ac-dcd-cursor-position))))
-                (ac-dcd-parse-output prefix (get-buffer-create ac-dcd-output-buffer-name))))))
+      (let ((prefix ac-prefix))
+        (save-excursion
+          (ac-dcd-adjust-cursor-on-completion (point))
+          (ac-dcd-call-process
+           (ac-dcd-build-complete-args (ac-dcd-cursor-position))))
+        (ac-dcd-parse-output prefix (get-buffer-create ac-dcd-output-buffer-name))))))
 
 (defun ac-dcd-prefix ()
   "Return the autocomplete prefix."
