@@ -612,7 +612,7 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
         (ac-dcd-goto-def-push-marker)
         (unless (string=  file "stdin") ; the declaration is in the current file
           (find-file file))
-        (goto-char (byte-to-position (string-to-number offset)))))))
+        (goto-char (byte-to-position (1+ (string-to-number offset))))))))
 
 
 ;; utilities for goto-definition
