@@ -537,8 +537,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     (with-current-buffer buf
       (erase-buffer)
 
-          (apply 'call-process-region (point-min) (point-max)
-                         ac-dcd-executable nil buf nil (cons "--tcp" args))
+      (apply 'call-process-region (point-min) (point-max)
+             ac-dcd-executable nil buf nil (cons "--tcp" args))
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
@@ -669,7 +669,7 @@ output is just like following.\n
     ;; the first occurrence of the DFLAGS
     (save-window-excursion
       (with-temp-buffer
-        (find-file dmd-conf-filename)
+        (insert-file-contents dmd-conf-filename)
         (goto-char (point-min))
         (search-forward "\nDFLAGS")
         (skip-chars-forward " =")
