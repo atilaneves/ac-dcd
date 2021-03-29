@@ -42,7 +42,7 @@
 (require 'flycheck-dmd-dub)
 
 
-(defcustom ac-dcd-executable
+(defcustom ac-dcd-client-executable
   "dcd-client"
   "Location of dcd-client executable."
   :group 'auto-complete
@@ -170,7 +170,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   "Notify error with result RES and arguments ARGS."
   (let* ((errbuf (get-buffer-create ac-dcd-error-buffer-name))
          (outbuf (get-buffer ac-dcd-output-buffer-name))
-         (cmd (concat ac-dcd-executable " " (mapconcat 'identity (cons "--tcp" args) " ")))
+         (cmd (concat ac-dcd-client-executable " " (mapconcat 'identity (cons "--tcp" args) " ")))
          (errstr
           (with-current-buffer outbuf
             (goto-char (point-min))
@@ -193,12 +193,12 @@ If you want to restart server, use `ac-dcd-init-server' instead."
   (let ((buf (get-buffer-create ac-dcd-output-buffer-name))
         res)
     (with-current-buffer buf (erase-buffer))
-    (setq res (if (null ac-dcd-executable)
+    (setq res (if (null ac-dcd-client-executable)
                   (progn
                     (message "ac-dcd error: could not find dcd-client executable")
                     0)
                 (apply 'call-process-region (point-min) (point-max)
-                       ac-dcd-executable nil buf nil (cons "--tcp" args))))
+                       ac-dcd-client-executable nil buf nil (cons "--tcp" args))))
     (with-current-buffer buf
       (unless (eq 0 res)
         (ac-dcd-handle-error res args))
@@ -537,8 +537,8 @@ dcd-client outputs candidates that begin with \"this\" when completing struct co
     (with-current-buffer buf
       (erase-buffer)
 
-          (apply 'call-process-region (point-min) (point-max)
-                         ac-dcd-executable nil buf nil (cons "--tcp" args))
+      (apply 'call-process-region (point-min) (point-max)
+             ac-dcd-client-executable nil buf nil (cons "--tcp" args))
       (when (or
              (string= (buffer-string) "")
              (string= (buffer-string) "\n\n\n")             ;when symbol has no doc
@@ -669,7 +669,7 @@ output is just like following.\n
     ;; the first occurrence of the DFLAGS
     (save-window-excursion
       (with-temp-buffer
-        (find-file dmd-conf-filename)
+        (insert-file-contents dmd-conf-filename)
         (goto-char (point-min))
         (search-forward "\nDFLAGS")
         (skip-chars-forward " =")
@@ -749,10 +749,10 @@ or package.json file."
         (erase-buffer)
         (if thing
             (apply 'call-process-region (point-min) (point-max)
-                   ac-dcd-executable nil buf nil (list "--tcp" "--search" thing))
+                   ac-dcd-client-executable nil buf nil (list "--tcp" "--search" thing))
           (let ((symbol (read-from-minibuffer "Enter symbol: ")))
             (apply 'call-process-region (point-min) (point-max)
-                   ac-dcd-executable nil buf nil (list "--tcp" "--search" symbol))))
+                   ac-dcd-client-executable nil buf nil (list "--tcp" "--search" symbol))))
         (display-buffer buf)
         (end-of-buffer)
         (delete-char -1)
