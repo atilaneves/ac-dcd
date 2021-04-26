@@ -96,7 +96,7 @@ If you want to restart server, use `ac-dcd-init-server' instead."
 
 (defsubst ac-dcd-start-server ()
   "Start dcd-server."
-  (let ((buf (get-buffer-create "*dcd-server*")))
+  (let ((buf (get-buffer-create " *dcd-server*")))
     (with-current-buffer buf (apply 'start-process "dcd-server" (current-buffer)
                                             ac-dcd-server-executable
                                             "-p"
