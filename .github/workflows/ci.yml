@@ -2,31 +2,29 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  elisp:
-    runs-on: ubuntu-22.04   # pinned
+  check:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        emacs: [27.2, 28.2, 29.4, 30.2]  # current stables
-
+        emacs_version:
+          - 26.3
+          - 27.2
+          - 28.2
+          - 29.3
+          - release-snapshot
+        ignore_warnings:
+          - true
+        include:
+          - emacs_version: snapshot
+            ignore_warnings: false
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Emacs ${{ matrix.emacs }}
-        uses: purcell/setup-emacs@v7.0
-        with:
-          version: ${{ matrix.emacs }}
-
-      # Lint against MELPA requirements (load-file, byte-compile, checkdoc, package-lint)
-      # - name: MELPA checks
-      #   uses: leotaku/elisp-check@v1.4.1
-      #   with:
-      #     check: melpa
-      #     file: "*.el"
-
-      # Run ERT tests (adjust file/glob to your test entry)
-      - name: ERT
-        uses: leotaku/elisp-check@v1.4.1
-        with:
-          check: ert
-          file: test/ac-dcd-test.el
+    - uses: actions/checkout@v4
+    - uses: purcell/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs_version }}
+    - uses: leotaku/elisp-check@master
+      with:
+        check: ert
+        file: test/ac-dcd-test.el
+        ignore_warnings: ${{ matrix.ignore_warnings }}
