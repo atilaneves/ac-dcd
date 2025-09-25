@@ -648,36 +648,39 @@ output is just like following.\n
 (defun ac-dcd-find-imports-dub ()
   "Extract import flags from \"dub describe\" output."
   (let* ((basedir (fldd--get-project-dir)))
-        (if basedir
-                (mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
-          nil)))
+    (if basedir
+        (mapcar (lambda (x) (concat "-I" x)) (fldd--get-dub-package-dirs))
+      nil)))
 
 (defun ac-dcd-find-imports-std ()
-  "Extract import flags from dmd.conf file."
-  (require 'cl)
-  (let ((dmd-conf-filename
-         (find-if 'file-exists-p
-                  (list
-                   ;; TODO: the first directory to look into should be dmd's current
-                   ;; working dir
-                   (concat (getenv "HOME") "/dmd.conf")
-                   (concat (ac-dcd-parent-directory (executable-find "dmd")) "dmd.conf")
-                   "/usr/local/etc/dmd.conf"
-                   "/etc/dmd.conf"))))
-
-    ;; TODO: this extracting procedure is pretty rough, it just searches for
-    ;; the first occurrence of the DFLAGS
-    (save-window-excursion
-      (with-temp-buffer
-        (insert-file-contents dmd-conf-filename)
-        (goto-char (point-min))
-        (search-forward "\nDFLAGS")
-        (skip-chars-forward " =")
-        (let ((flags-list (split-string (buffer-substring-no-properties
-                                         (point) (line-end-position)))))
-          (remove-if-not '(lambda (s)
-                            (string-prefix-p "-I" s))
-                         flags-list))))))
+  "Extract import flags from a D compiler dmd.conf file, including ~/dlang installs."
+  (require 'cl-lib)
+  (let* ((dmd-bin (executable-find "dmd"))
+         (dmd-parent (and dmd-bin (ac-dcd-parent-directory dmd-bin)))
+         (dlang-dir (expand-file-name "~/dlang"))
+         (dlang-confs (when (file-directory-p dlang-dir)
+                        (ignore-errors
+                          (directory-files-recursively dlang-dir "^dmd\\.conf$"))))
+         (candidates
+          (append
+           (delq nil
+                 (list
+                  (expand-file-name "dmd.conf" (getenv "HOME"))
+                  (when dmd-parent (expand-file-name "dmd.conf" dmd-parent))
+                  "/usr/local/etc/dmd.conf"
+                  "/etc/dmd.conf"))
+           dlang-confs))
+         (dmd-conf-filename (cl-find-if #'file-exists-p candidates)))
+    (when dmd-conf-filename
+      (save-window-excursion
+        (with-temp-buffer
+          (insert-file-contents dmd-conf-filename)
+          (goto-char (point-min))
+          (when (re-search-forward "^[ \t]*DFLAGS[ \t]*=" nil t)
+            (let* ((flags (buffer-substring-no-properties (point) (line-end-position)))
+                   (flags-list (split-string flags "[ \t]+" t)))
+              (cl-remove-if-not (lambda (s) (string-prefix-p "-I" s))
+                                flags-list))))))))
 
 (defun ac-dcd--find-all-project-imports ()
   "Find all project imports, including std packages and dub dependencies."
