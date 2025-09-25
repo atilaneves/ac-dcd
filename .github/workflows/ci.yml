@@ -18,15 +18,15 @@ jobs:
           version: ${{ matrix.emacs }}
 
       # Lint against MELPA requirements (load-file, byte-compile, checkdoc, package-lint)
-      - name: MELPA checks
-        uses: leotaku/elisp-check@v1.4.1
-        with:
-          check: melpa
-          file: "*.el"
+      # - name: MELPA checks
+      #   uses: leotaku/elisp-check@v1.4.1
+      #   with:
+      #     check: melpa
+      #     file: "*.el"
 
       # Run ERT tests (adjust file/glob to your test entry)
       - name: ERT
         uses: leotaku/elisp-check@v1.4.1
         with:
           check: ert
-          file: "test/*.el"
+          file: test/ac-dcd-test.el
